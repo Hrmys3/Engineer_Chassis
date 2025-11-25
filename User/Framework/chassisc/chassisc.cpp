@@ -49,8 +49,9 @@ void ChassisC::SolveForwardKinematics()
         now_wheel_vel[3] = -_rpmToRad(motors[3].GetVel());
 
         //速度正解算：将每个轮子的速度合成为底盘的 x、y 方向速度和旋转角速度
-        now_chassis_vel[X] = 0.25f * (-now_wheel_vel[0] + now_wheel_vel[1] - now_wheel_vel[2] + now_wheel_vel[
+        now_chassis_vel[X] = - 0.25f * (-now_wheel_vel[0] + now_wheel_vel[1] - now_wheel_vel[2] + now_wheel_vel[
             3]) * wheel_r_;
+        // usart_printf("");
         now_chassis_vel[Y] = 0.25f * (now_wheel_vel[0] + now_wheel_vel[1] + now_wheel_vel[2] + now_wheel_vel[3])
             * wheel_r_;
         now_chassis_vel[Z] = _radToAngle(
@@ -80,8 +81,11 @@ void ChassisC::SolveForwardKinematics()
     sin_radz = sinf(theta_);
 
     //将底盘坐标系中的速度转换到全局坐标系
-    now_abs_vel[X] = cos_radz * now_chassis_vel[X] - sin_radz * now_chassis_vel[Y];
+    // now_abs_vel[X] = cos_radz * now_chassis_vel[X] - sin_radz * now_chassis_vel[Y]; //0
+    now_abs_vel[X] = -cos_radz * now_chassis_vel[Y] + sin_radz * now_chassis_vel[X];
+    // usart_printf("%.1f,%.1f,%.1f,%.1f\r\n", cos_radz,now_chassis_vel[X],sin_radz,now_chassis_vel[Y]); // 1 0 0 有
     now_abs_vel[Y] = sin_radz * now_chassis_vel[X] + cos_radz * now_chassis_vel[Y];
+    // now_abs_vel[Y] = - sin_radz * now_chassis_vel[X] - cos_radz * now_chassis_vel[Y];
     now_abs_vel[Z] = now_chassis_vel[Z];
 }
 
@@ -99,7 +103,8 @@ void ChassisC::SolveInverseKinematics()
     sin_radz = sinf(theta_);
 
     //计算全局目标速度
-    target_chassis_vel[X] = cos_radz * target_abs_vel[X] + sin_radz * target_abs_vel[Y];
+    target_chassis_vel[X] = cos_radz * target_abs_vel[X] + sin_radz * target_abs_vel[Y]; //这是向前的
+    // usart_printf("%.1f,%.1f\r\n", target_abs_vel[X], target_abs_vel[Y]); //X NO，Y一直是0
     target_chassis_vel[Y] = -sin_radz * target_abs_vel[X] + cos_radz * target_abs_vel[Y];
     target_chassis_vel[Z] = _angleToRad(target_abs_vel[Z]);
 
@@ -108,19 +113,33 @@ void ChassisC::SolveInverseKinematics()
     {
         do
         {
-            temp_s[0] = (-target_chassis_vel[X] + target_chassis_vel[Y] + target_chassis_vel[Z] * (length_2_ +
-                width_2_)) / wheel_r_;
-            temp_s[1] = (target_chassis_vel[X] + target_chassis_vel[Y] - target_chassis_vel[Z] * (length_2_ + width_2_))
-                / wheel_r_;
-            temp_s[2] = (-target_chassis_vel[X] + target_chassis_vel[Y] - target_chassis_vel[Z] * (length_2_ +
-                width_2_)) / wheel_r_;
-            temp_s[3] = (target_chassis_vel[X] + target_chassis_vel[Y] + target_chassis_vel[Z] * (length_2_ + width_2_))
-                / wheel_r_;
+            // temp_s[0] = (-target_chassis_vel[X] + target_chassis_vel[Y] + target_chassis_vel[Z] * (length_2_ +
+            //     width_2_)) / wheel_r_; //NO X有问题 往前是X
+            // // usart_printf("%.1f,%.1f,%.1f\r\n", target_chassis_vel[X], target_chassis_vel[Y], target_chassis_vel[Z]);
+            // temp_s[1] = (target_chassis_vel[X] + target_chassis_vel[Y] - target_chassis_vel[Z] * (length_2_ + width_2_))
+            //     / wheel_r_;
+            // temp_s[2] = (-target_chassis_vel[X] + target_chassis_vel[Y] - target_chassis_vel[Z] * (length_2_ +
+            //     width_2_)) / wheel_r_;
+            // temp_s[3] = (target_chassis_vel[X] + target_chassis_vel[Y] + target_chassis_vel[Z] * (length_2_ + width_2_))
+            //     / wheel_r_;
+            // target_chassis_vel[Z] *= 0.8f; //优先降低旋转速度
+            // 0号轮 (右前): X修正为正，Z保持 +
+            temp_s[0] = (target_chassis_vel[X] + target_chassis_vel[Y] + target_chassis_vel[Z] * (length_2_ + width_2_)) / wheel_r_;
+
+            // 1号轮 (左前): X修正为负，Z由 - 改为 + (为了让左侧和右侧反向)
+            temp_s[1] = (-target_chassis_vel[X] + target_chassis_vel[Y] + target_chassis_vel[Z] * (length_2_ + width_2_)) / wheel_r_;
+
+            // 2号轮 (左后): X修正为正，Z由 - 改为 + (为了让左侧和右侧反向)
+            temp_s[2] = (target_chassis_vel[X] + target_chassis_vel[Y] - target_chassis_vel[Z] * (length_2_ + width_2_)) / wheel_r_;
+
+            // 3号轮 (右后): X修正为负，Z保持 +
+            temp_s[3] = (-target_chassis_vel[X] + target_chassis_vel[Y] - target_chassis_vel[Z] * (length_2_ + width_2_)) / wheel_r_;
             target_chassis_vel[Z] *= 0.8f; //优先降低旋转速度
         }
         while (_isSpdOutRange(temp_s, wheel_spd_max_) && fabsf(target_chassis_vel[Z]) > 6.0f);
 
-        target_wheel_rad[0] = temp_s[0];
+        target_wheel_rad[0] = temp_s[0]; //NO
+        // usart_printf("%.1f,%.1f\r\n", target_wheel_rad[0], rc_target_vel[0]);
         target_wheel_rad[1] = temp_s[1];
         target_wheel_rad[2] = temp_s[2];
         target_wheel_rad[3] = temp_s[3];
@@ -136,13 +155,13 @@ void ChassisC::SolveInverseKinematics()
         //逆解算
         do
         {
-            temp_s[0] = (-target_chassis_vel[X] + target_chassis_vel[Y] + target_chassis_vel[Z] * (length_2_ +
+            temp_s[0] = (target_chassis_vel[X] + target_chassis_vel[Y] + target_chassis_vel[Z] * (length_2_ +
                 width_2_)) / wheel_r_;
-            temp_s[1] = (-target_chassis_vel[X] - target_chassis_vel[Y] + target_chassis_vel[Z] * (length_2_ +
+            temp_s[1] = (-target_chassis_vel[X] + target_chassis_vel[Y] - target_chassis_vel[Z] * (length_2_ +
                 width_2_)) / wheel_r_;
-            temp_s[2] = (target_chassis_vel[X] - target_chassis_vel[Y] + target_chassis_vel[Z] * (length_2_ + width_2_))
+            temp_s[2] = (target_chassis_vel[X] + target_chassis_vel[Y] - target_chassis_vel[Z] * (length_2_ + width_2_))
                 / wheel_r_;
-            temp_s[3] = (target_chassis_vel[X] + target_chassis_vel[Y] + target_chassis_vel[Z] * (length_2_ + width_2_))
+            temp_s[3] = (-target_chassis_vel[X] + target_chassis_vel[Y] + target_chassis_vel[Z] * (length_2_ + width_2_))
                 / wheel_r_;
             // usart_printf("%f,%f,%f,%f \n",temp_s[0],temp_s[1],temp_s[2],temp_s[3]);
             target_chassis_vel[Z] *= 0.8f; //优先降低旋转速度
@@ -177,20 +196,27 @@ void ChassisC::UpdateAcc()
     }
 
     //abs_vel是当前车体速度
-    delta_vel[X] = rc_target_vel[X] - now_abs_vel[X];
+    delta_vel[X] = rc_target_vel[X] - now_abs_vel[X]; //很快0
+    // usart_printf("%.1f,%.1f\r\n", rc_target_vel[X], now_abs_vel[X]); //now_abs_vel[X]=0
     delta_vel[Y] = rc_target_vel[Y] - now_abs_vel[Y];
 
     //rc_target_vel[A]是计算出来的合成速度差，而其余X、Y、Z是云台传过来的
-    rc_target_vel[A] = sqrtf(delta_vel[X] * delta_vel[X] + delta_vel[Y] * delta_vel[Y]); //合成速度
+    rc_target_vel[A] = sqrtf(delta_vel[X] * delta_vel[X] + delta_vel[Y] * delta_vel[Y]); //合成速度，这个也慢慢变
 
     //已给定的合成方向加速度和云台Z轴旋转加速度
     target_abs_acc[A] = 1.0f;
+    // if (fabs(rc_target_vel[X]) < 0.01f ) {
+    //     target_abs_acc[A] = 10.0f;
+    // }
     target_abs_acc[Z] = 6.0f;
 
     //如果目标速度不是零，按 x、y 方向的速度差进行分配加速度
     if (rc_target_vel[A] != 0)
     {
-        target_abs_acc[X] = fabsf(target_abs_acc[A] * delta_vel[X] / rc_target_vel[A]) * 0.3f;
+        target_abs_acc[X] = fabsf(target_abs_acc[A] * delta_vel[X] / rc_target_vel[A]) * 0.3f; //加速度太小了？ 加速度很快归0 A慢慢降
+        // usart_printf("%.1f,%.1f,%.1f\r\n", target_abs_vel[X], target_abs_acc[X], rc_target_vel[A]); //target_abs_vel[X]很大的情况下，target_abs_acc[X]很快归0
+        // usart_printf("%.1f,%.1f,%.1f\r\n", target_abs_acc[A], delta_vel[X], rc_target_vel[A]); //delta_vel[X]=0
+        usart_printf("%.1f,%.1f,%.1f,%.1f\r\n", now_wheel_vel[0], now_wheel_vel[1],now_wheel_vel[2],now_wheel_vel[3]);
         //a[A]实际上是一个限幅，delta_v[X] / rc_v[A]是一个X和Y方向的速度分配比例
         target_abs_acc[Y] = fabsf(target_abs_acc[A] * delta_vel[Y] / rc_target_vel[A]) * 0.3f;
     }
@@ -201,7 +227,7 @@ void ChassisC::UpdateAcc()
 /**
  * @brief 使用斜坡函数更新底盘本轮循环的目标速度
  */
-void ChassisC::UpdateVel()
+void ChassisC::UpdateVel() //targetNO RC OK，斜坡函数有问题
 {
     for (uint8_t i = 0; i < 4; i++)
     {
@@ -333,7 +359,7 @@ void ChassisC::ControlLoop()
     // usart_printf("%d\r\n", CheckOnline()); //0
     if (CheckOnline())
     {
-        usart_printf("%f,%f\r\n", target_wheel_vel[0], now_wheel_vel[0]);
+        // usart_printf("%f,%f,%f\r\n", _rpmToRad(target_wheel_vel[0]), now_wheel_vel[0], rc_target_vel[0]);
         setMotorsCur(target_wheel_cur[0], target_wheel_cur[1], target_wheel_cur[2], target_wheel_cur[3]);
     }
     else

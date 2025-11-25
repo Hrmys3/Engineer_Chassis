@@ -72,7 +72,7 @@ private:
         MotorC(CAN_CHASSIS_ALL_ID, CAN_3508_M4_ID, 1, MOTOR_RATIO),
     };
     // 全局坐标系
-    float rc_target_vel[4]  = {0, 0, 0, 0}; //遥控器传入的全局坐标系下车体目标速度
+    float rc_target_vel[4]  = {0, 0, 0, 0}; //遥控器传入的全局坐标系下车体目标速度 OK
     float now_abs_vel[4]    = {0, 0, 0, 0}; //全局坐标系下车体全局速度
     float target_abs_acc[4] = {0, 0, 0, 0}; //全局坐标系下车体目标加速度
     float target_abs_vel[4] = {0, 0, 0, 0}; //全局坐标系下车体目标速度

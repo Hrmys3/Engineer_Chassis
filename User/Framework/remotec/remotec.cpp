@@ -167,13 +167,13 @@ void cRemote::rxUserCallback()
 
 /*
  * @brief          获取遥控器解算出的实际目标速度
- * @param rc_target 底盘目标速度数组[0]：x，[1]：y，[2]：z
+ * @param rc_target 底盘目标速度数组[0]：y，[1]：x，[2]：z
  * @return 无
  */
 void cRemote::UpdateRCTarget(float* rc_target, int16_t* mode) const
 {
-    rc_target[0] = static_cast<float>(rc_left_vertical) / (7.84f * 4);
-    rc_target[1] = -static_cast<float>(rc_left_horizontal) / (7.84f * 4);
+    rc_target[0] = -static_cast<float>(rc_left_vertical) / (7.84f * 20);
+    rc_target[1] = static_cast<float>(rc_left_horizontal) / (7.84f * 20);
     rc_target[2] = static_cast<float>(rc_right_horizontal);
     *mode = rc_switch_D;
     // usart_printf("%.1f,%.1f,%.1f\r\n", rc_target[0], rc_target[1], rc_target[2]);
