@@ -254,10 +254,14 @@ bool ChassisC::CheckOnline()
     {
         online_ = false;
     }
-    online_ = motors[0].CheckOnline() //0
-        // && motors[1].CheckOnline()
+    // TODO：检查online状态
+    //根据实际需要，选择检查哪些电机的状态
+    online_ = motors[0].CheckOnline()
+        && motors[1].CheckOnline()
         && motors[2].CheckOnline()
         && motors[3].CheckOnline()
+    //TODO：此处手动选择单底盘模式、全车模式
+    //如果使用原代码中的预处理器指令，可能会报错
 // #ifdef WHOLE_ROBOT
 //         &&gimbal_online_;
 // #elifdef CHASSIS_ONLY
@@ -320,7 +324,7 @@ void ChassisC::ControlLoop()
     UpdateAcc();                            // 根据遥控器输入，计算目标加速度
     UpdateVel();                            // 使用斜坡函数更新目标速度
     SolveInverseKinematics();               // 逆解算
-    // TODO 改正负号
+    // TODO：根据轮子电机的旋转方向修改正负号
     target_wheel_cur[0] = (int16_t)motors[0].GetTargetCur(-target_wheel_vel[0]); // 计算目标电流
     target_wheel_cur[1] = (int16_t)motors[1].GetTargetCur(target_wheel_vel[1]); // 计算目标电流
     target_wheel_cur[2] = (int16_t)motors[2].GetTargetCur(-target_wheel_vel[2]); // 计算目标电流

@@ -4,6 +4,8 @@
 #include "can.h"
 #include "stdint.h"
 
+//TODO：根据实际情况更改CAN ID
+//我们直接根据代码中的ID配置实际电机ID
 typedef enum
     ///Can总线ID类型
 {

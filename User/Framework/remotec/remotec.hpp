@@ -15,7 +15,7 @@ typedef enum
     LOW = 2
 } switch_status;
 
-// TODO: 根据需要调整
+// TODO: 根据需要选择遥控器
 // #define DR16
 #define FSI6
 

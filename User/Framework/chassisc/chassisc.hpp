@@ -8,7 +8,7 @@
 #include "usart.h"
 #include "remotec.hpp"
 
-// TODO: 根据需要调整
+// TODO: 根据需要选择单底盘模式、全车模式
 #define CHASSIS_ONLY
 // #define WHOLE_ROBOT
 
@@ -88,11 +88,11 @@ private:
     float yaw_agl = 0; //云台yaw轴角度
     float pih_agl = 0; //云台pitch轴角度
 
-    // TODO: 根据实际做更改！！！
+    // TODO: 根据实际更改轮子类型
     eSolveDir chassis_type = MECANUM_WHEEL;
     // eSolveDir chassis_type = OMNI_WHEEL;
 
-    // TODO: 根据实际做更改！！！
+    // TODO: 根据实际更改车体参数
     float wheel_r_  = 0.077; //轮子半径，单位m
     float width_2_  = 0.2205; //车体半宽，单位m
     float length_2_ = 0.255; //车体半长，单位m

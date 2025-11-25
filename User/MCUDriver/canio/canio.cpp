@@ -38,6 +38,7 @@ void CanSendCmd(uint16_t id, uint8_t cmd[8])
     tx_message.IDE   = CAN_ID_STD;
     tx_message.RTR   = CAN_RTR_DATA;
     tx_message.DLC   = 0x08;
+    //TODO：根据实际情况选择CAN线（CAN1或CAN2）
     HAL_CAN_AddTxMessage(&hcan1, &tx_message, cmd, &tx_mailbox);
 }
 
