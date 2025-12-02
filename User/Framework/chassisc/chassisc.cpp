@@ -13,12 +13,12 @@ void ChassisC::GetGimbalCmd(uint32_t ID, uint8_t data[8])
 {
     if (ID == 0x107)
     {
-        int16_t vx       = (int16_t)(data[0] << 8) | data[1];
-        int16_t vy       = (int16_t)(data[2] << 8) | data[3];
+        int16_t vy       = (int16_t)(data[0] << 8) | data[1];
+        int16_t vx       = (int16_t)(data[2] << 8) | data[3];
         yaw_agl          = (float)(int16_t)((data[4] << 8) | data[5]);
         mode             = (int8_t)data[6];
         gimbal_online_   = (bool)data[7];
-        rc_target_vel[X] = (float)vx / 6.6f * 3.0f / 100.0f;
+        rc_target_vel[X] = -(float)vx / 6.6f * 3.0f / 100.0f;
         rc_target_vel[Y] = (float)vy / 6.6f * 3.0f / 100.0f;
         yaw_pid.SetTarget(0.0f, PID_POSITIONAL);
         if (mode == 3)
@@ -81,11 +81,11 @@ void ChassisC::SolveForwardKinematics()
     sin_radz = sinf(theta_);
 
     //将底盘坐标系中的速度转换到全局坐标系
-    // now_abs_vel[X] = cos_radz * now_chassis_vel[X] - sin_radz * now_chassis_vel[Y]; //0
-    now_abs_vel[X] = -cos_radz * now_chassis_vel[Y] + sin_radz * now_chassis_vel[X];
+    // now_abs_vel[X] = -cos_radz * now_chassis_vel[Y] + sin_radz * now_chassis_vel[X];
+    now_abs_vel[X] = - cos_radz * now_chassis_vel[Y] - sin_radz * now_chassis_vel[X];
     // usart_printf("%.1f,%.1f,%.1f,%.1f\r\n", cos_radz,now_chassis_vel[X],sin_radz,now_chassis_vel[Y]); // 1 0 0 有
-    now_abs_vel[Y] = sin_radz * now_chassis_vel[X] + cos_radz * now_chassis_vel[Y];
-    // now_abs_vel[Y] = - sin_radz * now_chassis_vel[X] - cos_radz * now_chassis_vel[Y];
+    // now_abs_vel[Y] = sin_radz * now_chassis_vel[X] + cos_radz * now_chassis_vel[Y];
+    now_abs_vel[Y] = - sin_radz * now_chassis_vel[X] + cos_radz * now_chassis_vel[Y];
     now_abs_vel[Z] = now_chassis_vel[Z];
 }
 
@@ -103,9 +103,11 @@ void ChassisC::SolveInverseKinematics()
     sin_radz = sinf(theta_);
 
     //计算全局目标速度
-    target_chassis_vel[X] = cos_radz * target_abs_vel[X] + sin_radz * target_abs_vel[Y]; //这是向前的
+    // target_chassis_vel[X] = cos_radz * target_abs_vel[X] + sin_radz * target_abs_vel[Y]; //这是向前的
+    target_chassis_vel[X] = cos_radz * target_abs_vel[X] - sin_radz * target_abs_vel[Y];
     // usart_printf("%.1f,%.1f\r\n", target_abs_vel[X], target_abs_vel[Y]); //X NO，Y一直是0
-    target_chassis_vel[Y] = -sin_radz * target_abs_vel[X] + cos_radz * target_abs_vel[Y];
+    // target_chassis_vel[Y] = -sin_radz * target_abs_vel[X] + cos_radz * target_abs_vel[Y];
+    target_chassis_vel[Y] = sin_radz * target_abs_vel[X] + cos_radz * target_abs_vel[Y];
     target_chassis_vel[Z] = _angleToRad(target_abs_vel[Z]);
 
     //逆解算
@@ -205,8 +207,9 @@ void ChassisC::UpdateAcc()
 
     //已给定的合成方向加速度和云台Z轴旋转加速度
     target_abs_acc[A] = 1.0f;
-    // if (fabs(rc_target_vel[X]) < 0.01f ) {
-    //     target_abs_acc[A] = 10.0f;
+    // target_abs_acc[A] = 0.5f;
+    // if (fabs(rc_target_vel[X]) < 0.05f ) {
+    //     target_abs_acc[A] = 3.0f; //好像没什么效果
     // }
     target_abs_acc[Z] = 6.0f;
 
@@ -216,7 +219,7 @@ void ChassisC::UpdateAcc()
         target_abs_acc[X] = fabsf(target_abs_acc[A] * delta_vel[X] / rc_target_vel[A]) * 0.3f; //加速度太小了？ 加速度很快归0 A慢慢降
         // usart_printf("%.1f,%.1f,%.1f\r\n", target_abs_vel[X], target_abs_acc[X], rc_target_vel[A]); //target_abs_vel[X]很大的情况下，target_abs_acc[X]很快归0
         // usart_printf("%.1f,%.1f,%.1f\r\n", target_abs_acc[A], delta_vel[X], rc_target_vel[A]); //delta_vel[X]=0
-        usart_printf("%.1f,%.1f,%.1f,%.1f\r\n", now_wheel_vel[0], now_wheel_vel[1],now_wheel_vel[2],now_wheel_vel[3]);
+        // usart_printf("%.1f,%.1f,%.1f,%.1f\r\n", now_wheel_vel[0], now_wheel_vel[1],now_wheel_vel[2],now_wheel_vel[3]);
         //a[A]实际上是一个限幅，delta_v[X] / rc_v[A]是一个X和Y方向的速度分配比例
         target_abs_acc[Y] = fabsf(target_abs_acc[A] * delta_vel[Y] / rc_target_vel[A]) * 0.3f;
     }
@@ -289,9 +292,9 @@ bool ChassisC::CheckOnline()
     //TODO：此处手动选择单底盘模式、全车模式
     //如果使用原代码中的预处理器指令，可能会报错
 // #ifdef WHOLE_ROBOT
-//         &&gimbal_online_;
+         &&gimbal_online_;
 // #elifdef CHASSIS_ONLY
-        && rc.CheckOnline(); //0
+        // && rc.CheckOnline(); //0
     // usart_printf("11\r\n"); //OK
     // usart_printf("%d,%d,%d,%d,%d\r\n", motors[0].CheckOnline(), motors[1].CheckOnline(), motors[2].CheckOnline(), motors[3].CheckOnline(), rc.CheckOnline());
 // #endif
@@ -345,11 +348,17 @@ void ChassisC::ControlLoop()
 {
     ChassisUpdate();                        // 更新四轮电机信息
     SolveForwardKinematics();               // 正解算
-    rc.UpdateRCTarget(rc_target_vel, &mode); // 更新遥控器输入
-    // usart_printf("")
+    // rc.UpdateRCTarget(rc_target_vel, &mode); // 更新遥控器输入
+
     UpdateAcc();                            // 根据遥控器输入，计算目标加速度
     UpdateVel();                            // 使用斜坡函数更新目标速度
     SolveInverseKinematics();               // 逆解算
+
+    // target_wheel_vel[0] = _radToRpm(20.0);
+    // target_wheel_vel[1] = _radToRpm(20.0);
+    // target_wheel_vel[2] = _radToRpm(20.0);
+    // target_wheel_vel[3] = _radToRpm(20.0);
+
     // TODO：根据轮子电机的旋转方向修改正负号
     target_wheel_cur[0] = (int16_t)motors[0].GetTargetCur(-target_wheel_vel[0]); // 计算目标电流
     target_wheel_cur[1] = (int16_t)motors[1].GetTargetCur(target_wheel_vel[1]); // 计算目标电流
@@ -360,7 +369,11 @@ void ChassisC::ControlLoop()
     if (CheckOnline())
     {
         // usart_printf("%f,%f,%f\r\n", _rpmToRad(target_wheel_vel[0]), now_wheel_vel[0], rc_target_vel[0]);
+        // usart_printf("%d,%d,%d,%d\r\n", target_wheel_cur[0], target_wheel_cur[1], target_wheel_cur[2], target_wheel_cur[3]); //怎么全是0啊？？？数据格式是d
         setMotorsCur(target_wheel_cur[0], target_wheel_cur[1], target_wheel_cur[2], target_wheel_cur[3]);
+        // setMotorsCur(540, 650, 450, 500);
+
+        // usart_printf("%.1f,%.1f,%.1f,%.1f\r\n", now_wheel_vel[0], now_wheel_vel[1],now_wheel_vel[2],now_wheel_vel[3]);
     }
     else
     {
