@@ -21,13 +21,15 @@ void ChassisC::GetGimbalCmd(uint32_t ID, uint8_t data[8])
         rc_target_vel[X] = -(float)vx / 6.6f * 3.0f / 100.0f;
         rc_target_vel[Y] = (float)vy / 6.6f * 3.0f / 100.0f;
         yaw_pid.SetTarget(0.0f, PID_POSITIONAL);
-        if (mode == 3)
+        if (mode == 3) //这是随动模式
         {
             rc_target_vel[Z] = yaw_pid.UpdateOutput(yaw_agl);
         }
-        else if (mode == 2)
+        else if (mode == 2) //这是小陀螺模式
         {
+            //TODO:1205-更改小陀螺速度
             rc_target_vel[Z] = 100.0f;
+            //如果出现提高小陀螺速度之后云台无法保持稳定的问题，我忘记怎么解决了...可以问问AI
         }
         times_ = 0;
     }
