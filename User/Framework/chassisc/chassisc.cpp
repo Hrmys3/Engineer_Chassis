@@ -28,9 +28,14 @@ void ChassisC::GetGimbalCmd(uint32_t ID, uint8_t data[8])
         else if (mode == 2) //这是小陀螺模式
         {
             //TODO:1205-更改小陀螺速度
-            rc_target_vel[Z] = 100.0f;
-            //如果出现提高小陀螺速度之后云台无法保持稳定的问题，我忘记怎么解决了...可以问问AI
+            // rc_target_vel[Z] = 100.0f;
+            //rc_target_vel[Z] = 200.0f;
+            rc_target_vel[Z] = 250.0f; //可以考虑变速小陀螺
         }
+        else if (mode == 7) { //变速小陀螺
+            rc_target_vel[Z] = 400.0f;
+        }
+
         times_ = 0;
     }
 }
